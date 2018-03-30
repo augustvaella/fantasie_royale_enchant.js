@@ -7,10 +7,14 @@ var GameFPS = 30;
 var GameWave = 1;
 var GameMaxWave = 10;
 
-var UIPlayerHPBarX = 40;
+var UIPlayerHPBarX = 50;
 var UIPlayerHPBarY = 15;
 var UIPlayerHPBarImageFilename = "bar.png";
-
+var UIScoreX = GameScreenWidth / 2;
+var UIScoreY = 15;
+var UITextHPX = 0;
+var UITextHPY = UIPlayerHPBarY;
+var UITextHPWidth = 50;
 
 var PlayerImageWidth = 32;
 var PlayerImageHeight = 40;
@@ -35,6 +39,7 @@ var EnemyMoveInterval = GameFPS;
 var EnemyAttackInterval = 6;
 var EnemyHP = 1;
 var EnemyAttack = 1;
+var EnemyScore = 10;
 
 var JaparimanWidth = 32;
 var JaparimanHeight = 32;
@@ -82,6 +87,8 @@ var player;
 //現在の敵の数
 var numberEnemy = 0;
 
+var numberJapariman = 0;
+
 var wave = [];
 
 var game;
@@ -124,10 +131,13 @@ var Player = enchant.Class.create(enchant.Sprite,{
     this.frame = 0;
 
     this.hp = PlayerHP;
+    this.hpMax = PlayerHP;
 
     this.attack = PlayerAttack;
     this.attackDelay = 0;
     this.attackInterval = PlayerAttackInterval;
+
+    this.score = 0;
 
     this.enabled = true;
 
@@ -158,11 +168,18 @@ var Player = enchant.Class.create(enchant.Sprite,{
 
   recoverHP: function(val){
     this.hp += val;
+    if(this.hp > this.hpMax) this.hp = this.hpMax;
   },
 
   damageHP: function(val){
     this.hp -= val;
-  }
+  },
+
+  gainScore: function(val){
+    this.score += val;
+  },
+
+  finalize: function(){}
 });
 
 
@@ -204,6 +221,8 @@ var Japariman = enchant.Class.create(Item, {
     this.x = pos.x;
     this.y = pos.y;
     this.speed = JaparimanSpeed;
+
+    numberJapariman++;
   },
 
   move: function(){
@@ -220,6 +239,10 @@ var Japariman = enchant.Class.create(Item, {
 
   ontouchplayer: function(){
     player.recoverHP(JaparimanRecoverHP);
+  },
+
+  finalize: function(){
+    numberJapariman--;
   }
 });
 
@@ -239,6 +262,8 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     this.attack = EnemyAttack;
     this.attackDelay = 0;
     this.attackInterval = EnemyAttackInterval;
+
+    this.score = EnemyScore;
 
     this.isToMove = false;
     this.moveToX = 0;
@@ -291,6 +316,7 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
 
   remove: function(){
     this.finalize();
+    player.gainScore(this.score);
     game.rootScene.removeChild(this);
     delete this;
     numberEnemy--;
@@ -331,11 +357,20 @@ var UI = enchant.Class.create(enchant.Group, {
     this.playerHPBar.value = this.playerHPBar.maxvalue;
     this.addChild(this.playerHPBar);
 
+    this.score = new enchant.ui.ScoreLabel(UIScoreX, UIScoreY);
+    this.score.score = 0;
+    this.addChild(this.score);
+
+    this.hpLabel = new enchant.ui.MutableText(UITextHPX, UITextHPY, UITextHPWidth);
+    this.hpLabel.text = "HP:"
+    this.addChild(this.hpLabel);
+
     game.rootScene.addChild(this);
   },
 
   onenterframe: function(){
     this.playerHPBar.value = player.hp;
+    this.score.score = player.score;
   }
 });
 
@@ -359,12 +394,14 @@ window.onload = function(){
 
     ui = new UI();
 
-    //自機移動リスナ登録
-    game.rootScene.on("touchstart", function(ev){
+    function beginPlayerMove(ev){
       player.isToMove = true;
       player.moveToX = ev.x;
       player.moveToY = ev.y;
-    });
+    }
+
+    //自機移動リスナ登録
+    game.rootScene.on("touchstart", beginPlayerMove);
 
 
     //Wave n での敵の行動
@@ -373,7 +410,7 @@ window.onload = function(){
               var enm = new Enemy(EnemyImageWidth, EnemyImageHeight);
 
         }
-        if(game.frame % JaparimanInterval == 0){
+        if(numberJapariman < 1 && game.frame % JaparimanInterval == 0){
             var jpr = new Japariman();
         }
     }
