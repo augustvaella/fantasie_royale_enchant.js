@@ -7,6 +7,11 @@ var GameFPS = 30;
 var GameWave = 1;
 var GameMaxWave = 10;
 
+var UIPlayerHPBarX = 40;
+var UIPlayerHPBarY = 15;
+var UIPlayerHPBarImageFilename = "bar.png";
+
+
 var PlayerImageWidth = 32;
 var PlayerImageHeight = 40;
 var PlayerImageFilename = "./image/player.png";
@@ -27,6 +32,7 @@ var EnemySpeed = 5;
 var EnemyMax = 30; //the max number of the enemies
 var EnemyInterval = GameFPS;
 var EnemyMoveInterval = GameFPS;
+var EnemyAttackInterval = 6;
 var EnemyHP = 1;
 var EnemyAttack = 1;
 
@@ -48,11 +54,11 @@ function distance(x, y, ox, oy){
 
 
 
-//画面の周囲
-//wid: スプライトの width
-//hei: スプライトの height
-//return [x: {number}, y: {number}]
-function setPositionScreenAround(wid, hei){
+//画面の周囲にスプライトを配置する座標を返す
+//@param wid スプライトの width
+//@param hei スプライトの height
+//@return 座標 [x: {number}, y: {number}]
+function answerPositionScreenAround(wid, hei){
   var val = Math.random() * (GameScreenWidth * 2 + GameScreenHeight * 2 - wid * 2 - hei * 2);
   var width = GameScreenWidth - wid;
   var height = GameScreenHeight - hei;
@@ -68,6 +74,7 @@ function setPositionScreenAround(wid, hei){
 }
 
 
+var ui;
 
 //自機設定
 var player;
@@ -96,8 +103,10 @@ var Crush = enchant.Class.create(enchant.Sprite,{
   onenterframe: function(){
   },
   onanimationend: function(){
+    this.finalize();
     this.remove();
   },
+  finalize: function(){},
   remove: function(){
       game.rootScene.removeChild(this);
       delete this;
@@ -128,6 +137,7 @@ var Player = enchant.Class.create(enchant.Sprite,{
     this.speed = PlayerSpeed;
     game.rootScene.addChild(this);
   },
+
   onenterframe: function(){
     if(this.isToMove){
       this.move();
@@ -135,6 +145,7 @@ var Player = enchant.Class.create(enchant.Sprite,{
     }
     this.attackDelay++;
   },
+
   move: function(){
     if(this.enabled){
       var dx = this.moveToX - (this.width / 2);
@@ -143,6 +154,14 @@ var Player = enchant.Class.create(enchant.Sprite,{
       this.tl.clear();
       this.tl.moveTo(dx, dy, frm, enchant.Easing.LINEAR);
     }
+  },
+
+  recoverHP: function(val){
+    this.hp += val;
+  },
+
+  damageHP: function(val){
+    this.hp -= val;
   }
 });
 
@@ -154,6 +173,7 @@ var Item  = enchant.Class.create(enchant.Sprite, {
     this.image = game.assets[fn];
     game.rootScene.addChild(this);
   },
+
   onenterframe: function(){
     if(this.intersect(player)){
       this.ontouchplayer();
@@ -161,12 +181,18 @@ var Item  = enchant.Class.create(enchant.Sprite, {
     }
     this.move();
   },
+
   ontouchplayer: function(){},
+
   move: function(){},
+
   remove: function(){
+    this.finalize();
     game.rootScene.removeChild(this);
     delete this;
-  }
+  },
+
+  finalize: function(){}
 });
 
 
@@ -174,11 +200,12 @@ var Item  = enchant.Class.create(enchant.Sprite, {
 var Japariman = enchant.Class.create(Item, {
   initialize: function(){
     Item.call(this, JaparimanWidth, JaparimanHeight, JaparimanImageFilename);
-    var pos = setPositionScreenAround(this.width, this.height);
+    var pos = answerPositionScreenAround(this.width, this.height);
     this.x = pos.x;
     this.y = pos.y;
     this.speed = JaparimanSpeed;
   },
+
   move: function(){
     if(game.frame % this.speed != 0) return;
     var dx = JaparimanMoveDX;
@@ -190,17 +217,20 @@ var Japariman = enchant.Class.create(Item, {
 
     this.tl.moveBy(dx, dy, this.speed, enchant.Easing.LINEAR);
   },
+
   ontouchplayer: function(){
-    player.hp += JaparimanRecoverHP;
+    player.recoverHP(JaparimanRecoverHP);
   }
 });
+
+
 
 var Enemy = enchant.Class.create(enchant.Sprite, {
   initialize: function(wid, hei){
     enchant.Sprite.call(this, wid, hei);
     this.image = game.assets[EnemyImageFilename];
     this.frame = 0;
-    var pos = this.setEnemyPosition();
+    var pos = this.answerPosition();
     this.x = pos.x;
     this.y = pos.y;
     this.speed = EnemySpeed;
@@ -208,6 +238,7 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     this.hp = EnemyHP;
     this.attack = EnemyAttack;
     this.attackDelay = 0;
+    this.attackInterval = EnemyAttackInterval;
 
     this.isToMove = false;
     this.moveToX = 0;
@@ -219,49 +250,92 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     game.rootScene.insertBefore(this, player);
     numberEnemy++;
   },
+
   onenterframe: function(){
     if(this.isToRemoved){
       this.remove();
       this.isToRemoved = false;
     }
+
     if(this.isToMove){
       this.move();
       this.isToMove = false;
     }
+
     if(this.age % this.moveInterval == 0){
       this.move();
     }
-    if(this.intersect(player) && player.attackDelay >= player.attackInterval){
-      this.hp -= player.attack;
-      player.attackDelay = 0;
 
-      var x = (this.x + player.x) / 2;
-      var y = (this.y + player.y) / 2;
-      var crs = new Crush(x, y,
-             PlayerAttackImageWidth,
-             PlayerAttackImageHeight,
-             PlayerAttackImageFilename,
-             PlayerAttackImageFrame
-      );
+    if(this.intersect(player)){
+      if(this.age % this.attackInterval == 0) {
+        player.damageHP(this.attack);
+      }
 
-      if(this.hp <= 0) this.isToRemoved = true;
+      if(player.attackDelay >= player.attackInterval){
+        this.damageHP(player.attack);
+        player.attackDelay = 0;
+
+        var x = (this.x + player.x) / 2;
+        var y = (this.y + player.y) / 2;
+        var crs = new Crush(x, y,
+               PlayerAttackImageWidth,
+               PlayerAttackImageHeight,
+               PlayerAttackImageFilename,
+               PlayerAttackImageFrame
+        );
+      }
     }
+
     this.attackDelay++;
   },
+
   remove: function(){
+    this.finalize();
     game.rootScene.removeChild(this);
     delete this;
     numberEnemy--;
   },
+
   move: function(){
     this.tl.clear();
     this.tl.moveTo(player.x, player.y,
       distance(this.x, this.y, player.x, player.y) / this.speed,
       enchant.Easing.LINEAR);
   },
+
   //敵位置設定（スクリーンの周縁部）
-  setEnemyPosition: function(){
-    return setPositionScreenAround(this.width, this.height);
+  answerPosition: function(){
+    return answerPositionScreenAround(this.width, this.height);
+  },
+
+  damageHP: function(val){
+    this.hp -= val;
+    if(this.hp <= 0) this.isToRemoved = true;
+  },
+
+  finalize: function(){
+
+  }
+});
+
+
+
+var UI = enchant.Class.create(enchant.Group, {
+  initialize: function(){
+    enchant.Group.call(this);
+
+    this.playerHPBar = new enchant.ui.Bar(UIPlayerHPBarX, UIPlayerHPBarY);
+    this.playerHPBar.direction = "right";
+    this.playerHPBar.image = game.assets[UIPlayerHPBarImageFilename];
+    this.playerHPBar.maxvalue = PlayerHP;
+    this.playerHPBar.value = this.playerHPBar.maxvalue;
+    this.addChild(this.playerHPBar);
+
+    game.rootScene.addChild(this);
+  },
+
+  onenterframe: function(){
+    this.playerHPBar.value = player.hp;
   }
 });
 
@@ -275,13 +349,15 @@ window.onload = function(){
   game.preload(EnemyImageFilename);
   game.preload(PlayerAttackImageFilename);
   game.preload(JaparimanImageFilename);
+  game.preload(UIPlayerHPBarImageFilename);
 
   game.onload = function(){
 
 
-    //自機設定
+    //自機インスタンス
     player = new Player();
 
+    ui = new UI();
 
     //自機移動リスナ登録
     game.rootScene.on("touchstart", function(ev){
