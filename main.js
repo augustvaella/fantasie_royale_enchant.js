@@ -15,6 +15,8 @@ var UIScoreY = 15;
 var UITextHPX = 0;
 var UITextHPY = UIPlayerHPBarY;
 var UITextHPWidth = 50;
+var UIFontWidth = 16;
+var UIScoreKeta = 9;
 
 var PlayerImageWidth = 32;
 var PlayerImageHeight = 40;
@@ -27,7 +29,9 @@ var PlayerAttackImageFilename = "./image/attack.png";
 var PlayerAttackImageWidth = 32;
 var PlayerAttackImageHeight = 32;
 var PlayerAttackImageFrame = [0, 0, 0, 1, 1, 1, 2, 2, 2, null];
-var PlayerHP = 100;
+var PlayerAttackEffectFilename = "./effects/cutting_wind1.mp3";
+var PlayerHP = 50;
+var PlayerDamageEffectFilename = "./effects/damage1.mp3";
 
 var EnemyImageWidth = 32;
 var EnemyImageHeight = 32;
@@ -37,18 +41,21 @@ var EnemyMax = 30; //the max number of the enemies
 var EnemyInterval = GameFPS;
 var EnemyMoveInterval = GameFPS;
 var EnemyAttackInterval = 6;
+var EnemyRemoveEffectFilename = "./effects/damage6.mp3";
 var EnemyHP = 1;
 var EnemyAttack = 1;
-var EnemyScore = 10;
+var EnemyScore = 100;
 
 var JaparimanWidth = 32;
 var JaparimanHeight = 32;
 var JaparimanImageFilename = "./image/japariman.png";
-var JaparimanRecoverHP = 30;
+var JaparimanRecoverHP = 15;
 var JaparimanInterval = GameFPS * 10;
 var JaparimanMoveDX = 5;
 var JaparimanMoveDY = 5;
 var JaparimanSpeed = 5;
+
+var ItemGetEffectFilename = "./effects/coin04.mp3";
 
 
 //二点間の距離
@@ -86,13 +93,31 @@ var player;
 
 //現在の敵の数
 var numberEnemy = 0;
-
 var numberJapariman = 0;
 
 var wave = [];
 
+var gameoverScene;
 var game;
 
+
+//ゲームオーバーシーン
+var GameoverScene = enchant.Class.create(enchant.Scene,{
+  initialize: function(){
+    enchant.Scene.call(this);
+    this.gameoverLabel = new enchant.ui.MutableText(
+      (GameScreenWidth - UIFontWidth * 9) /2,
+      (GameScreenHeight - UIFontWidth ) / 2,
+      UIFontWidth * 9
+    );
+    this.gameoverLabel.text = "Game Over";
+    this.addChild(this.gameoverLabel);
+
+  },
+  onenter: function(){
+    game.stop();
+  }
+});
 
 //爆発クラス
 //アニメーションフレームが配列であり、その配列で null があると
@@ -113,11 +138,23 @@ var Crush = enchant.Class.create(enchant.Sprite,{
     this.finalize();
     this.remove();
   },
-  finalize: function(){},
   remove: function(){
       game.rootScene.removeChild(this);
       delete this;
-  }
+  },
+  finalize: function(){}
+});
+
+
+var PlayerAttackImage = enchant.Class.create(Crush,{
+  initialize: function(x, y){
+    Crush.call(this, x, y,
+      PlayerAttackImageWidth,
+      PlayerAttackImageHeight,
+      PlayerAttackImageFilename,
+      PlayerAttackImageFrame);
+  },
+  finalize(){}
 });
 
 
@@ -136,6 +173,9 @@ var Player = enchant.Class.create(enchant.Sprite,{
     this.attack = PlayerAttack;
     this.attackDelay = 0;
     this.attackInterval = PlayerAttackInterval;
+    this.attackEffect = game.assets[PlayerAttackEffectFilename];
+
+    this.damageEffect = game.assets[PlayerDamageEffectFilename];
 
     this.score = 0;
 
@@ -173,13 +213,16 @@ var Player = enchant.Class.create(enchant.Sprite,{
 
   damageHP: function(val){
     this.hp -= val;
+    if(this.hp < 0) this.finalize();
   },
 
   gainScore: function(val){
     this.score += val;
   },
 
-  finalize: function(){}
+  finalize: function(){
+    game.pushScene(gameoverScene);
+  }
 });
 
 
@@ -188,12 +231,18 @@ var Item  = enchant.Class.create(enchant.Sprite, {
   initialize: function(wid, hei, fn){
     enchant.Sprite.call(this, wid, hei);
     this.image = game.assets[fn];
+    this.getEffect = game.assets[ItemGetEffectFilename];
+
     game.rootScene.addChild(this);
   },
 
   onenterframe: function(){
     if(this.intersect(player)){
       this.ontouchplayer();
+
+      var snd = this.getEffect.clone();
+      snd.play();
+
       this.remove();
     }
     this.move();
@@ -271,6 +320,7 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     this.moveInterval = EnemyMoveInterval;
 
     this.isToRemoved = false;
+    this.removeEffect = game.assets[EnemyRemoveEffectFilename];
 
     game.rootScene.insertBefore(this, player);
     numberEnemy++;
@@ -294,20 +344,21 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     if(this.intersect(player)){
       if(this.age % this.attackInterval == 0) {
         player.damageHP(this.attack);
+
+        var snd = player.damageEffect.clone();
+        snd.play();
       }
 
       if(player.attackDelay >= player.attackInterval){
         this.damageHP(player.attack);
         player.attackDelay = 0;
 
+        var snd = player.attackEffect.clone();
+        snd.play();
+
         var x = (this.x + player.x) / 2;
         var y = (this.y + player.y) / 2;
-        var crs = new Crush(x, y,
-               PlayerAttackImageWidth,
-               PlayerAttackImageHeight,
-               PlayerAttackImageFilename,
-               PlayerAttackImageFrame
-        );
+        var crs = new PlayerAttackImage(x, y);
       }
     }
 
@@ -317,8 +368,13 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
   remove: function(){
     this.finalize();
     player.gainScore(this.score);
+
+    var snd = this.removeEffect.clone();
+    snd.play();
+
     game.rootScene.removeChild(this);
     delete this;
+
     numberEnemy--;
   },
 
@@ -357,8 +413,8 @@ var UI = enchant.Class.create(enchant.Group, {
     this.playerHPBar.value = this.playerHPBar.maxvalue;
     this.addChild(this.playerHPBar);
 
-    this.score = new enchant.ui.ScoreLabel(UIScoreX, UIScoreY);
-    this.score.score = 0;
+    this.score = new enchant.ui.MutableText(UIScoreX, UIScoreY, UIFontWidth * UIScoreKeta);
+    this.score.text = "0";
     this.addChild(this.score);
 
     this.hpLabel = new enchant.ui.MutableText(UITextHPX, UITextHPY, UITextHPWidth);
@@ -370,7 +426,7 @@ var UI = enchant.Class.create(enchant.Group, {
 
   onenterframe: function(){
     this.playerHPBar.value = player.hp;
-    this.score.score = player.score;
+    this.score.text = player.score.toString();
   }
 });
 
@@ -386,13 +442,20 @@ window.onload = function(){
   game.preload(JaparimanImageFilename);
   game.preload(UIPlayerHPBarImageFilename);
 
+  game.preload(PlayerAttackEffectFilename);
+  game.preload(PlayerDamageEffectFilename);
+  game.preload(EnemyRemoveEffectFilename);
+  game.preload(ItemGetEffectFilename);
+
   game.onload = function(){
 
+    gameoverScene = new GameoverScene();
 
     //自機インスタンス
     player = new Player();
 
     ui = new UI();
+
 
     function beginPlayerMove(ev){
       player.isToMove = true;
