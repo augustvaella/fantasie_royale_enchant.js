@@ -98,6 +98,7 @@ var numberJapariman = 0;
 var wave = [];
 
 var gameoverScene;
+var openingScene;
 var game;
 
 
@@ -116,6 +117,33 @@ var GameoverScene = enchant.Class.create(enchant.Scene,{
   },
   onenter: function(){
     game.stop();
+  }
+});
+
+
+var OpeningScene = enchant.Class.create(enchant.Scene,{
+  initialize: function(){
+    enchant.Scene.call(this);
+    var ttl = "Kemoflex";
+    var tch = "Touch Me!";
+    this.title = new enchant.ui.MutableText(
+      (GameScreenWidth - UIFontWidth * ttl.length) /2,
+      (GameScreenHeight - UIFontWidth ) / 2,
+      UIFontWidth * ttl.length
+    );
+    this.title.text = ttl;
+    this.addChild(this.title);
+
+    this.touchMe = new enchant.ui.MutableText(
+      (GameScreenWidth - UIFontWidth * tch.length) /2,
+      (GameScreenHeight - UIFontWidth ) / 2 + UIFontWidth * 2,
+      UIFontWidth * tch.length
+    );
+    this.touchMe.text = tch;
+    this.addChild(this.touchMe);
+  },
+  ontouchstart: function(){
+    game.popScene();
   }
 });
 
@@ -450,6 +478,7 @@ window.onload = function(){
   game.onload = function(){
 
     gameoverScene = new GameoverScene();
+    openingScene = new OpeningScene();
 
     //自機インスタンス
     player = new Player();
@@ -480,8 +509,10 @@ window.onload = function(){
 
     //Wave 1 での敵の行動リスナ登録
     game.rootScene.on("enterframe", wave[0]);
+    game.pushScene(openingScene);
 
   };
+
 
   game.start();
 };
