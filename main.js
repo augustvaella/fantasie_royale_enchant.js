@@ -30,24 +30,44 @@ var EnemyMoveInterval = GameFPS;
 var EnemyHP = 1;
 var EnemyAttack = 1;
 
-//敵位置設定（スクリーンの周縁部）
-function setEnemyPosition(){
-  var val = Math.random() * GameAroundLength;
-  if(val <= GameScreenWidth){
-    return {x: val, y: 0};
-  } else if(GameScreenWidth < val && val <= GameScreenWidth + GameScreenHeight) {
-    return {x: GameScreenWidth, y: val - GameScreenWidth};
-  } else if(GameScreenWidth + GameScreenHeight < val && val <= GameScreenWidth * 2 + GameScreenHeight){
-    return {x: val - GameScreenWidth - GameScreenHeight, y: GameScreenHeight};
-  } else {
-    return {x: 0, y: val - GameScreenWidth * 2 - GameScreenHeight};
-  }
-}
+var JaparimanWidth = 32;
+var JaparimanHeight = 32;
+var JaparimanImageFilename = "./image/japariman.png";
+var JaparimanRecoverHP = 30;
+var JaparimanInterval = GameFPS * 10;
+var JaparimanMoveDX = 5;
+var JaparimanMoveDY = 5;
+var JaparimanSpeed = 5;
+
 
 //二点間の距離
+//return {number}
 function distance(x, y, ox, oy){
   return Math.sqrt(Math.pow(x - ox, 2) + Math.pow(y - oy, 2));
 }
+
+
+
+//画面の周囲
+//wid: スプライトの width
+//hei: スプライトの height
+//return [x: {number}, y: {number}]
+function setPositionScreenAround(wid, hei){
+  var val = Math.random() * (GameScreenWidth * 2 + GameScreenHeight * 2 - wid * 2 - hei * 2);
+  var width = GameScreenWidth - wid;
+  var height = GameScreenHeight - hei;
+  if(val <= width){
+    return {x: val, y: 0};
+  } else if(width < val && val <= width + height) {
+    return {x: width, y: val - width};
+  } else if(width + height < val && val <= width * 2 + height){
+    return {x: val - width - height, y: height};
+  } else {
+    return {x: 0, y: val - width * 2 - height};
+  }
+}
+
+
 
 //自機設定
 var player;
@@ -128,12 +148,59 @@ var Player = enchant.Class.create(enchant.Sprite,{
 
 
 
+var Item  = enchant.Class.create(enchant.Sprite, {
+  initialize: function(wid, hei, fn){
+    enchant.Sprite.call(this, wid, hei);
+    this.image = game.assets[fn];
+    game.rootScene.addChild(this);
+  },
+  onenterframe: function(){
+    if(this.intersect(player)){
+      this.ontouchplayer();
+      this.remove();
+    }
+    this.move();
+  },
+  ontouchplayer: function(){},
+  move: function(){},
+  remove: function(){
+    game.rootScene.removeChild(this);
+    delete this;
+  }
+});
+
+
+
+var Japariman = enchant.Class.create(Item, {
+  initialize: function(){
+    Item.call(this, JaparimanWidth, JaparimanHeight, JaparimanImageFilename);
+    var pos = setPositionScreenAround(this.width, this.height);
+    this.x = pos.x;
+    this.y = pos.y;
+    this.speed = JaparimanSpeed;
+  },
+  move: function(){
+    if(game.frame % this.speed != 0) return;
+    var dx = JaparimanMoveDX;
+    var dy = JaparimanMoveDY;
+    if(this.x >= game.width - this.width
+       || (this.x > 0 && Math.random() > 0.5)) dx = -dx;
+    if(this.y >= game.height - this.height
+       || (this.y > 0 && Math.random() > 0.5)) dy = -dy;
+
+    this.tl.moveBy(dx, dy, this.speed, enchant.Easing.LINEAR);
+  },
+  ontouchplayer: function(){
+    player.hp += JaparimanRecoverHP;
+  }
+});
+
 var Enemy = enchant.Class.create(enchant.Sprite, {
   initialize: function(wid, hei){
     enchant.Sprite.call(this, wid, hei);
     this.image = game.assets[EnemyImageFilename];
     this.frame = 0;
-    var pos = setEnemyPosition();
+    var pos = this.setEnemyPosition();
     this.x = pos.x;
     this.y = pos.y;
     this.speed = EnemySpeed;
@@ -191,6 +258,10 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     this.tl.moveTo(player.x, player.y,
       distance(this.x, this.y, player.x, player.y) / this.speed,
       enchant.Easing.LINEAR);
+  },
+  //敵位置設定（スクリーンの周縁部）
+  setEnemyPosition: function(){
+    return setPositionScreenAround(this.width, this.height);
   }
 });
 
@@ -203,6 +274,7 @@ window.onload = function(){
   game.preload(PlayerImageFilename);
   game.preload(EnemyImageFilename);
   game.preload(PlayerAttackImageFilename);
+  game.preload(JaparimanImageFilename);
 
   game.onload = function(){
 
@@ -224,6 +296,9 @@ window.onload = function(){
         if(game.frame % EnemyInterval == 0 && numberEnemy < EnemyMax){
               var enm = new Enemy(EnemyImageWidth, EnemyImageHeight);
 
+        }
+        if(game.frame % JaparimanInterval == 0){
+            var jpr = new Japariman();
         }
     }
 
