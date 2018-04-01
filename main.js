@@ -56,6 +56,9 @@ var JaparimanMoveDY = 5;
 var JaparimanSpeed = 5;
 
 var ItemGetEffectFilename = "./effects/coin04.mp3";
+var ItembarFilename = "./image/itembar.png";
+var ItembarWidth = 320;
+var ItembarHeight = 50;
 
 var BombFilename = "./image/bomb.png";
 var BombWidth = 48;
@@ -111,7 +114,7 @@ function distance(x, y, ox, oy){
 function answerPositionScreenAround(wid, hei){
   var val = Math.random() * (GameScreenWidth * 2 + GameScreenHeight * 2 - wid * 2 - hei * 2);
   var width = GameScreenWidth - wid;
-  var height = GameScreenHeight - hei;
+  var height = GameScreenHeight - ItembarHeight - hei;
   if(val <= width){
     return {x: val, y: 0};
   } else if(width < val && val <= width + height) {
@@ -574,6 +577,12 @@ var UI = enchant.Class.create(enchant.Group, {
     this.hpLabel.text = "HP:"
     this.addChild(this.hpLabel);
 
+    this.itembar = new enchant.Sprite(ItembarWidth, ItembarHeight);
+    this.itembar.image = game.assets[ItembarFilename];
+    this.itembar.x = 0;
+    this.itembar.y = GameScreenHeight - ItembarHeight;
+    this.addChild(this.itembar);
+
     game.rootScene.addChild(this);
   },
 
@@ -582,6 +591,7 @@ var UI = enchant.Class.create(enchant.Group, {
     this.score.text = player.score.toString();
   }
 });
+
 
 
 
@@ -595,6 +605,7 @@ window.onload = function(){
   game.preload(JaparimanImageFilename);
   game.preload(UIPlayerHPBarImageFilename);
   game.preload(BombFilename);
+  game.preload(ItembarFilename);
 
   game.preload(PlayerAttackEffectFilename);
   game.preload(PlayerDamageEffectFilename);
@@ -610,9 +621,11 @@ window.onload = function(){
 
 
     function beginPlayerMove(ev){
-      player.isToMove = true;
-      player.moveToX = ev.x;
-      player.moveToY = ev.y;
+      if(ev.y > 0 && ev.y < GameScreenHeight - ItembarHeight){
+        player.isToMove = true;
+        player.moveToX = ev.x;
+        player.moveToY = ev.y;
+      }
     }
 
     //自機移動リスナ登録
