@@ -57,6 +57,44 @@ var JaparimanSpeed = 5;
 
 var ItemGetEffectFilename = "./effects/coin04.mp3";
 
+var BombFilename = "./image/bomb.png";
+var BombWidth = 48;
+var BombHeight = 48;
+var BombEffectFilename =  EnemyRemoveEffectFilename;
+var BombFrame = [0, 0, 1, 1, 2, 2, null];
+
+var Cellien = {
+  EnemyImageWidth: 32,
+  EnemyImageHeight: 32,
+  EnemyImageFilename: "./image/enemy.png",
+  EnemySpeed: 5,
+  EnemyHP: 1,
+  EnemyAttack: 1,
+  EnemyAttackInterval: 6,
+  EnemyScore: 100,
+  EnemyMoveInterval: 30
+};
+
+
+var WaveObject = [];
+
+WaveObject[1] = {
+  NumberEnemyMax: 30,
+  NumberEnemyWhereBossCome: 60,
+  IntervalWhenEventOccur: 30,
+  IntervalEnemy: 60,
+  IntervalJapariman: 120,
+  EventMethod: function(){
+    if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
+          var enm = new Enemy(Cellien);
+
+    }
+    if(this.numberJapariman < 1 && this.age % this.intervalJapariman == 0){
+        var jpr = new Japariman();
+    }
+  }
+};
+
 
 //二点間の距離
 //return {number}
@@ -95,10 +133,8 @@ var player;
 var numberEnemy = 0;
 var numberJapariman = 0;
 
-var wave = [];
+var wave;
 
-var gameoverScene;
-var openingScene;
 var game;
 
 
@@ -144,6 +180,73 @@ var OpeningScene = enchant.Class.create(enchant.Scene,{
   },
   ontouchstart: function(){
     game.popScene();
+    game.pushScene(new WaveInformation(1));
+  }
+});
+
+
+//@param {number}num Waveのナンバー
+var WaveInformation = enchant.Class.create(enchant.Scene, {
+  initialize: function(num){
+    enchant.Scene.call(this);
+
+    this.number = num;
+
+    var txt = "Wave "+ num.toString();
+    this.text = new enchant.ui.MutableText(
+      (GameScreenWidth - UIFontWidth * txt.length) / 2,
+      (GameScreenHeight - UIFontWidth) / 2,
+      UIFontWidth * txt.length
+    );
+    this.text.text = txt;
+    this.addChild(this.text);
+  },
+  ontouchstart: function(){
+    wave = new Wave(WaveObject[this.number]);
+    game.popScene();
+  }
+});
+
+
+
+var Wave = enchant.Class.create(enchant.Node, {
+  initialize: function(obj){
+    enchant.Node.call(this);
+
+    this.numberEnemyMax = obj["NumberEnemyMax"];
+    this.numberEnemy = 0;
+    this.intervalEnemy = obj["IntervalEnemy"];
+    this.numberEnemyWhereBossCome = obj["NumberEnemyWhereBossCome"];
+    this.intervalWhenEventOccur = obj["IntervalWhenEventOccur"];
+    this.numberJapariman = 0;
+    this.numberJaparimanMax = 1;
+    this.intervalJapariman = obj["IntervalJapariman"];
+
+    this.isEnemyAnihilated = false;
+    this.isEnemyStop = false;
+
+    this.wait = 0;
+
+    this.eventMethod = obj["EventMethod"];
+
+    game.rootScene.addChild(this);
+  },
+  onenterframe: function(){
+    if(this.wait > 0) return --this.wait;
+
+    if(this.age % this.intervalWhenEventOccur == 0){
+      this.eventMethod();
+    }
+  },
+  end: function(){
+    game.rootScene.removeChild(this);
+    delete this;
+  },
+  eventMethod: function(){
+
+  },
+  finalize: function(){
+
   }
 });
 
@@ -183,6 +286,17 @@ var PlayerAttackImage = enchant.Class.create(Crush,{
       PlayerAttackImageFrame);
   },
   finalize(){}
+});
+
+
+
+var Bomb = enchant.Class.create(Crush,{
+  initialize: function(x, y){
+    Crush.call(this, x, y, BombWidth, BombHeight, BombFilename, BombFrame);
+
+    var snd = game.assets[BombEffectFilename].clone();
+    snd.play();
+  }
 });
 
 
@@ -249,7 +363,7 @@ var Player = enchant.Class.create(enchant.Sprite,{
   },
 
   finalize: function(){
-    game.pushScene(gameoverScene);
+    game.pushScene(new GameoverScene);
   }
 });
 
@@ -273,6 +387,12 @@ var Item  = enchant.Class.create(enchant.Sprite, {
 
       this.remove();
     }
+
+    if(this.x + this.width < 0 || this.y + this.height < 0
+       ||this.x > game.width || this.y > game.height){
+         this.remove();
+    }
+
     this.move();
   },
 
@@ -299,7 +419,7 @@ var Japariman = enchant.Class.create(Item, {
     this.y = pos.y;
     this.speed = JaparimanSpeed;
 
-    numberJapariman++;
+    wave.numberJapariman++;
   },
 
   move: function(){
@@ -319,94 +439,99 @@ var Japariman = enchant.Class.create(Item, {
   },
 
   finalize: function(){
-    numberJapariman--;
+    wave.numberJapariman--;
   }
 });
 
 
 
 var Enemy = enchant.Class.create(enchant.Sprite, {
-  initialize: function(wid, hei){
-    enchant.Sprite.call(this, wid, hei);
-    this.image = game.assets[EnemyImageFilename];
+  initialize: function(obj){
+    enchant.Sprite.call(this, obj["EnemyImageWidth"], obj["EnemyImageHeight"]);
+    this.image = game.assets[obj["EnemyImageFilename"]];
     this.frame = 0;
     var pos = this.answerPosition();
     this.x = pos.x;
     this.y = pos.y;
-    this.speed = EnemySpeed;
+    this.speed = obj["EnemySpeed"];
 
-    this.hp = EnemyHP;
-    this.attack = EnemyAttack;
+    this.hp = obj["EnemyHP"];
+    this.attack = obj["EnemyAttack"];
     this.attackDelay = 0;
-    this.attackInterval = EnemyAttackInterval;
+    this.attackInterval = obj["EnemyAttackInterval"];
 
-    this.score = EnemyScore;
+    this.score = obj["EnemyScore"];
 
     this.isToMove = false;
     this.moveToX = 0;
     this.moveToY = 0;
-    this.moveInterval = EnemyMoveInterval;
+    this.moveInterval = obj["EnemyMoveInterval"];
 
     this.isToRemoved = false;
-    this.removeEffect = game.assets[EnemyRemoveEffectFilename];
+
+    this.enabled = true;
 
     game.rootScene.insertBefore(this, player);
-    numberEnemy++;
+    wave.numberEnemy++;
   },
 
   onenterframe: function(){
+    if(!this.enabled) return;
+
     if(this.isToRemoved){
       this.remove();
       this.isToRemoved = false;
     }
 
-    if(this.isToMove){
-      this.move();
-      this.isToMove = false;
+    if(wave.isEnemyAnihilated){
+      this.remove();
     }
 
-    if(this.age % this.moveInterval == 0){
-      this.move();
-    }
+    this.move();
 
     if(this.intersect(player)){
-      if(this.age % this.attackInterval == 0) {
-        player.damageHP(this.attack);
-
-        var snd = player.damageEffect.clone();
-        snd.play();
-      }
-
-      if(player.attackDelay >= player.attackInterval){
-        this.damageHP(player.attack);
-        player.attackDelay = 0;
-
-        var snd = player.attackEffect.clone();
-        snd.play();
-
-        var x = (this.x + player.x) / 2;
-        var y = (this.y + player.y) / 2;
-        var crs = new PlayerAttackImage(x, y);
-      }
+      this.ontouchplayer();
     }
 
     this.attackDelay++;
+  },
+
+  ontouchplayer: function(){
+    if(this.age % this.attackInterval == 0) {
+      player.damageHP(this.attack);
+
+      var snd = player.damageEffect.clone();
+      snd.play();
+    }
+
+    if(player.attackDelay >= player.attackInterval){
+      this.damageHP(player.attack);
+      player.attackDelay = 0;
+
+      var snd = player.attackEffect.clone();
+      snd.play();
+
+      var x = (this.x + player.x) / 2;
+      var y = (this.y + player.y) / 2;
+      var crs = new PlayerAttackImage(x, y);
+    }
   },
 
   remove: function(){
     this.finalize();
     player.gainScore(this.score);
 
-    var snd = this.removeEffect.clone();
-    snd.play();
+    var bmb = new Bomb(this.x + (this.width - BombWidth), this.y + (this.height - BombHeight));
 
     game.rootScene.removeChild(this);
     delete this;
 
-    numberEnemy--;
+    wave.numberEnemy--;
   },
 
   move: function(){
+    if(this.age % this.moveInterval != 0) return;
+
     this.tl.clear();
     this.tl.moveTo(player.x, player.y,
       distance(this.x, this.y, player.x, player.y) / this.speed,
@@ -469,6 +594,7 @@ window.onload = function(){
   game.preload(PlayerAttackImageFilename);
   game.preload(JaparimanImageFilename);
   game.preload(UIPlayerHPBarImageFilename);
+  game.preload(BombFilename);
 
   game.preload(PlayerAttackEffectFilename);
   game.preload(PlayerDamageEffectFilename);
@@ -476,9 +602,6 @@ window.onload = function(){
   game.preload(ItemGetEffectFilename);
 
   game.onload = function(){
-
-    gameoverScene = new GameoverScene();
-    openingScene = new OpeningScene();
 
     //自機インスタンス
     player = new Player();
@@ -495,22 +618,7 @@ window.onload = function(){
     //自機移動リスナ登録
     game.rootScene.on("touchstart", beginPlayerMove);
 
-
-    //Wave n での敵の行動
-    wave[0] = function(){
-        if(game.frame % EnemyInterval == 0 && numberEnemy < EnemyMax){
-              var enm = new Enemy(EnemyImageWidth, EnemyImageHeight);
-
-        }
-        if(numberJapariman < 1 && game.frame % JaparimanInterval == 0){
-            var jpr = new Japariman();
-        }
-    }
-
-    //Wave 1 での敵の行動リスナ登録
-    game.rootScene.on("enterframe", wave[0]);
-    game.pushScene(openingScene);
-
+    game.pushScene(new OpeningScene());
   };
 
 
