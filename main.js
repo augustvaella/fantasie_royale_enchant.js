@@ -2,7 +2,10 @@ enchant();
 
 var GameScreenWidth = 320;
 var GameScreenHeight = 600;
-var GameAroundLength = GameScreenWidth * 2 + GameScreenHeight * 2;
+var GameFieldX = 0;
+var GameFieldY = 50;
+var GameFieldRightX = 320;
+var GameFieldRightY = 550;
 var GameFPS = 30;
 var GameWave = 1;
 var GameMaxWave = 10;
@@ -55,10 +58,57 @@ var JaparimanMoveDX = 5;
 var JaparimanMoveDY = 5;
 var JaparimanSpeed = 5;
 
+var ServalX = 36;
+var ServalY = 560;
+var ServalWidth = 32;
+var ServalHeight = 40;
+var ServalFilename = "./image/serval.png";
+var CaracalX = 100;
+var CaracalY = 560;
+var CaracalWidth = 32;
+var CaracalHeight = 40;
+var CaracalFilename = "./image/caracal.png";
+var RacoonX = 168;
+var RacoonY = 560;
+var RacoonWidth = 32;
+var RacoonHeight = 36;
+var RacoonFilename = "./image/racoon.png";
+var FennecX = 236;
+var FennecY = 560;
+var FennecWidth = 44;
+var FennecHeight = 36;
+var FennecFilename = "./image/fennec.png";
+
+var CutinServalX = 0;
+var CutinServalY = 600;
+var CutinServalWidth = 200;
+var CutinServalHeight = 355;
+var CutinServalFilename = "./image/cutin_serval.png";
+var CutinCaracalX = 120;
+var CutinCaracalY = 600;
+var CutinCaracalWidth = 200;
+var CutinCaracalHeight = 412;
+var CutinCaracalFilename = "./image/cutin_caracal.png";
+var CutinRacoonX = 120;
+var CutinRacoonY = 600;
+var CutinRacoonWidth = 200;
+var CutinRacoonHeight = 285;
+var CutinRacoonFilename = "./image/cutin_racoon.png";
+var CutinFennecX = 0;
+var CutinFennecY = 0;
+var CutinFennecWidth = 200;
+var CutinFennecHeight = 265;
+var CutinFennecFilename = "./image/cutin_fennec.png";
+var CutinDY = 12;
+
 var ItemGetEffectFilename = "./effects/coin04.mp3";
 var ItembarFilename = "./image/itembar.png";
+var ItembarX = 0;
+var ItembarY = 550;
 var ItembarWidth = 320;
 var ItembarHeight = 50;
+var ItemFalseOpacity = 0.2;
+var ItemTrueOpacity = 1.0;
 
 var BombFilename = "./image/bomb.png";
 var BombWidth = 48;
@@ -81,12 +131,31 @@ var Cellien = {
 
 var WaveObject = [];
 
+WaveObject[0] = {
+  Number: 0,
+  NumberEnemyMax: 0,
+  NumberEnemyWhereBossCome: 0,
+  IntervalWhenEventOccur: 1,
+  IntervalEnemy: 1,
+  IntervalJapariman: 1,
+  IntervalServal: 1,
+  IntervalCaracal: 1,
+  IntervalRacoon: 1,
+  IntervalFennec: 1,
+  EventMethod: function(){}
+};
+
 WaveObject[1] = {
+  Number: 1,
   NumberEnemyMax: 30,
   NumberEnemyWhereBossCome: 60,
   IntervalWhenEventOccur: 30,
   IntervalEnemy: 60,
   IntervalJapariman: 120,
+  IntervalServal: 120,
+  IntervalCaracal: 120,
+  IntervalRacoon: 120,
+  IntervalFennec: 120,
   EventMethod: function(){
     if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
           var enm = new Enemy(Cellien);
@@ -95,6 +164,17 @@ WaveObject[1] = {
     if(this.numberJapariman < 1 && this.age % this.intervalJapariman == 0){
         var jpr = new Japariman();
     }
+    if(this.numberServal < 1 && this.age % this.intervalServal == 0)
+        var jpr = new Serval();
+
+    if(this.numberCaracal < 1 && this.age % this.intervalCaracal == 0)
+        var jpr = new Caracal();
+
+    if(this.numberRacoon < 1 && this.age % this.intervalRacoon == 0)
+        var jpr = new Racoon();
+
+    if(this.numberFennec < 1 && this.age % this.intervalFennec == 0)
+        var jpr = new Fennec();
   }
 };
 
@@ -107,22 +187,41 @@ function distance(x, y, ox, oy){
 
 
 
+//与えられた座標がゲームフィールドの中にあるか判定
+//@param {number}x x座標
+//@param {number}y y座標
+//@return {Boolean} ゲームフィールドの中にあれば true
+function isInGameField(x, y){
+    if(x >= GameFieldX && x <= GameFieldRightX && y >= GameFieldY && y <= GameFieldRightY) {
+      return true;
+    } else {
+      return false;
+    }
+}
+
+
+
 //画面の周囲にスプライトを配置する座標を返す
 //@param wid スプライトの width
 //@param hei スプライトの height
 //@return 座標 [x: {number}, y: {number}]
 function answerPositionScreenAround(wid, hei){
-  var val = Math.random() * (GameScreenWidth * 2 + GameScreenHeight * 2 - wid * 2 - hei * 2);
-  var width = GameScreenWidth - wid;
-  var height = GameScreenHeight - ItembarHeight - hei;
+  var ox = GameFieldX;
+  var oy = GameFieldY;
+  var fw = GameFieldRightX - GameFieldX;
+  var fh = GameFieldRightY - GameFieldY;
+  var width = fw - wid;
+  var height = fh - ItembarHeight - hei;
+
+  var val = Math.random() * (width * 2 + height * 2);
   if(val <= width){
-    return {x: val, y: 0};
+    return {x: ox + val, y: oy};
   } else if(width < val && val <= width + height) {
-    return {x: width, y: val - width};
+    return {x: ox + width, y: oy + val - width};
   } else if(width + height < val && val <= width * 2 + height){
-    return {x: val - width - height, y: height};
+    return {x: ox + val - width - height, y: oy + height};
   } else {
-    return {x: 0, y: val - width * 2 - height};
+    return {x: ox, y: oy + val - width * 2 - height};
   }
 }
 
@@ -160,6 +259,7 @@ var GameoverScene = enchant.Class.create(enchant.Scene,{
 });
 
 
+
 var OpeningScene = enchant.Class.create(enchant.Scene,{
   initialize: function(){
     enchant.Scene.call(this);
@@ -186,6 +286,85 @@ var OpeningScene = enchant.Class.create(enchant.Scene,{
     game.pushScene(new WaveInformation(1));
   }
 });
+
+
+
+var Cutin = enchant.Class.create(enchant.Scene, {
+    initialize: function(x, y, wid, hei, fn, wv){
+      enchant.Scene.call(this);
+      this.image = new enchant.Sprite(wid, hei);
+      this.image.image = game.assets[fn];
+      this.image.x = x;
+      this.image.y = y;
+      this.addChild(this.image);
+
+      this.waveEffect = wv;
+
+      this.image.isStopImage = false;
+
+    },
+
+    onenterframe: function(){
+      if(this.image.isStopImage){
+        game.popScene();
+        this.waveEffect.call(wave);
+        delete this;
+      }
+    }
+});
+
+
+
+var CutinServal = enchant.Class.create(Cutin, {
+  initialize: function(){
+    Cutin.call(this, CutinServalX, CutinServalY, CutinServalWidth, CutinServalHeight,
+      CutinServalFilename, wave.doServal);
+
+    this.image.tl.moveTo(50, 245, 20, enchant.Easing.QUAD_EASEOUT)
+    .tween({Y:0, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .then(function(){this.isStopImage = true;});
+  }
+});
+
+
+
+var CutinCaracal = enchant.Class.create(Cutin, {
+  initialize: function(){
+    Cutin.call(this, CutinCaracalX, CutinCaracalY, CutinCaracalWidth, CutinCaracalHeight,
+      CutinCaracalFilename, wave.doCaracal);
+
+    this.image.tl.moveTo(70, 188, 20, enchant.Easing.QUAD_EASEOUT)
+    .tween({Y:0, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .then(function(){this.isStopImage = true;});
+  }
+});
+
+
+
+var CutinRacoon = enchant.Class.create(Cutin, {
+  initialize: function(){
+    Cutin.call(this, CutinRacoonX, CutinRacoonY, CutinRacoonWidth, CutinRacoonHeight,
+      CutinRacoonFilename, wave.doRacoon);
+
+    this.image.tl.moveTo(120, 315, 20, enchant.Easing.QUAD_EASEOUT)
+    .tween({Y:0, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .then(function(){this.isStopImage = true;});
+  }
+});
+
+
+
+var CutinFennec = enchant.Class.create(Cutin, {
+  initialize: function(){
+    Cutin.call(this, CutinFennecX, CutinFennecY, CutinFennecWidth, CutinFennecHeight,
+      CutinFennecFilename, wave.doFennec);
+
+    this.image.tl.moveTo(50, 265, 20, enchant.Easing.QUAD_EASEOUT)
+    .tween({Y:600, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .then(function(){this.isStopImage = true;});
+  }
+});
+
 
 
 //@param {number}num Waveのナンバー
@@ -216,14 +395,33 @@ var Wave = enchant.Class.create(enchant.Node, {
   initialize: function(obj){
     enchant.Node.call(this);
 
+    this.number = obj["Number"];
+
     this.numberEnemyMax = obj["NumberEnemyMax"];
     this.numberEnemy = 0;
     this.intervalEnemy = obj["IntervalEnemy"];
     this.numberEnemyWhereBossCome = obj["NumberEnemyWhereBossCome"];
     this.intervalWhenEventOccur = obj["IntervalWhenEventOccur"];
+
     this.numberJapariman = 0;
     this.numberJaparimanMax = 1;
     this.intervalJapariman = obj["IntervalJapariman"];
+
+    this.numberServal = 0;
+    this.numberServalMax = 1;
+    this.intervalServal = obj["IntervalServal"];
+
+    this.numberCaracal = 0;
+    this.numberCaracalMax = 1;
+    this.intervalCaracal = obj["IntervalCaracal"];
+
+    this.numberRacoon = 0;
+    this.numberRacoonMax = 1;
+    this.intervalRacoon = obj["IntervalRacoon"];
+
+    this.numberFennec = 0;
+    this.numberFennecMax = 1;
+    this.intervalFennec = obj["IntervalFennec"];
 
     this.isEnemyAnihilated = false;
     this.isEnemyStop = false;
@@ -248,6 +446,24 @@ var Wave = enchant.Class.create(enchant.Node, {
   eventMethod: function(){
 
   },
+
+  doServal: function(){
+    player.serval = false;
+
+  },
+
+  doCaracal: function(){
+    player.caracal = false;
+  },
+
+  doRacoon: function(){
+    player.racoon = false;
+  },
+
+  doFennec: function(){
+    player.fennec = false;
+  },
+
   finalize: function(){
 
   }
@@ -324,6 +540,11 @@ var Player = enchant.Class.create(enchant.Sprite,{
 
     this.score = 0;
 
+    this.serval = false;
+    this.caracal = false;
+    this.racoon = false;
+    this.fennec = false;
+
     this.enabled = true;
 
     this.isToMove = false;
@@ -375,6 +596,12 @@ var Player = enchant.Class.create(enchant.Sprite,{
 var Item  = enchant.Class.create(enchant.Sprite, {
   initialize: function(wid, hei, fn){
     enchant.Sprite.call(this, wid, hei);
+
+    var pos = answerPositionScreenAround(this.width, this.height);
+    this.x = pos.x;
+    this.y = pos.y;
+    this.speed = JaparimanSpeed;
+
     this.image = game.assets[fn];
     this.getEffect = game.assets[ItemGetEffectFilename];
 
@@ -401,7 +628,15 @@ var Item  = enchant.Class.create(enchant.Sprite, {
 
   ontouchplayer: function(){},
 
-  move: function(){},
+  move: function(){
+    if(game.frame % this.speed != 0) return;
+    var dx = JaparimanMoveDX;
+    var dy = JaparimanMoveDY;
+    if(this.x + this.width > GameFieldRightX || (this.x > 0 && Math.random() > 0.5)) dx = -dx;
+    if(this.y + this.height > GameFieldRightY || (this.y > 0 && Math.random() > 0.5)) dy = -dy;
+
+    this.tl.moveBy(dx, dy, this.speed, enchant.Easing.LINEAR);
+  },
 
   remove: function(){
     this.finalize();
@@ -417,24 +652,7 @@ var Item  = enchant.Class.create(enchant.Sprite, {
 var Japariman = enchant.Class.create(Item, {
   initialize: function(){
     Item.call(this, JaparimanWidth, JaparimanHeight, JaparimanImageFilename);
-    var pos = answerPositionScreenAround(this.width, this.height);
-    this.x = pos.x;
-    this.y = pos.y;
-    this.speed = JaparimanSpeed;
-
     wave.numberJapariman++;
-  },
-
-  move: function(){
-    if(game.frame % this.speed != 0) return;
-    var dx = JaparimanMoveDX;
-    var dy = JaparimanMoveDY;
-    if(this.x >= game.width - this.width
-       || (this.x > 0 && Math.random() > 0.5)) dx = -dx;
-    if(this.y >= game.height - this.height
-       || (this.y > 0 && Math.random() > 0.5)) dy = -dy;
-
-    this.tl.moveBy(dx, dy, this.speed, enchant.Easing.LINEAR);
   },
 
   ontouchplayer: function(){
@@ -443,6 +661,74 @@ var Japariman = enchant.Class.create(Item, {
 
   finalize: function(){
     wave.numberJapariman--;
+  }
+});
+
+
+
+var Serval = enchant.Class.create(Item, {
+  initialize: function(){
+    Item.call(this, ServalWidth, ServalHeight, ServalFilename);
+    wave.numberServal++;
+  },
+
+  ontouchplayer: function(){
+    player.serval = true;
+  },
+
+  finalize: function(){
+    wave.numberServal--;
+  }
+});
+
+
+
+var Caracal = enchant.Class.create(Item, {
+  initialize: function(){
+    Item.call(this, CaracalWidth, CaracalHeight, CaracalFilename);
+    wave.numberCaracal++;
+  },
+
+  ontouchplayer: function(){
+    player.caracal = true;
+  },
+
+  finalize: function(){
+    wave.numberCaracal--;
+  }
+});
+
+
+
+var Racoon = enchant.Class.create(Item, {
+  initialize: function(){
+    Item.call(this, RacoonWidth, RacoonHeight, RacoonFilename);
+    wave.numberRacoon++;
+  },
+
+  ontouchplayer: function(){
+    player.racoon = true;
+  },
+
+  finalize: function(){
+    wave.numberRacoon--;
+  }
+});
+
+
+
+var Fennec = enchant.Class.create(Item, {
+  initialize: function(){
+    Item.call(this, FennecWidth, FennecHeight, FennecFilename);
+    wave.numberFennec++;
+  },
+
+  ontouchplayer: function(){
+    player.fennec = true;
+  },
+
+  finalize: function(){
+    wave.numberFennec--;
   }
 });
 
@@ -558,6 +844,25 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
 
 
 
+var ButtonItem = enchant.Class.create(enchant.Sprite,{
+  initialize: function(x, y, wid, hei, fn){
+    enchant.Sprite.call(this, wid, hei);
+    this.image = game.assets[fn];
+    this.x = x;
+    this.y = y;
+    this.frame = 0;
+    this.enabled = false;
+  },
+
+  ontouchstart: function(ev){
+    if(this.enabled){
+      this.cutin();
+    }
+  }
+});
+
+
+
 var UI = enchant.Class.create(enchant.Group, {
   initialize: function(){
     enchant.Group.call(this);
@@ -579,9 +884,30 @@ var UI = enchant.Class.create(enchant.Group, {
 
     this.itembar = new enchant.Sprite(ItembarWidth, ItembarHeight);
     this.itembar.image = game.assets[ItembarFilename];
-    this.itembar.x = 0;
-    this.itembar.y = GameScreenHeight - ItembarHeight;
+    this.itembar.x = ItembarX;
+    this.itembar.y = ItembarY;
     this.addChild(this.itembar);
+
+    this.itemServal = new ButtonItem(ServalX, ServalY, ServalWidth, ServalHeight, ServalFilename);
+    this.itemServal.cutin = function(){game.pushScene(new CutinServal());};
+    this.itemServal.effect = wave.doServal;
+    this.addChild(this.itemServal);
+
+
+    this.itemCaracal = new ButtonItem(CaracalX, CaracalY, CaracalWidth, CaracalHeight, CaracalFilename);
+    this.itemCaracal.cutin = function(){game.pushScene(new CutinCaracal());};
+    this.itemCaracal.effect = wave.doCaracal;
+    this.addChild(this.itemCaracal);
+
+    this.itemRacoon = new ButtonItem(RacoonX, RacoonY, RacoonWidth, RacoonHeight, RacoonFilename);
+    this.itemRacoon.cutin = function(){game.pushScene(new CutinRacoon());};
+    this.itemRacoon.effect = wave.doRacoon;
+    this.addChild(this.itemRacoon);
+
+    this.itemFennec = new ButtonItem(FennecX, FennecY, FennecWidth, FennecHeight, FennecFilename);
+    this.itemFennec.cutin = function(){game.pushScene(new CutinFennec());};
+    this.itemFennec.effect = wave.doFennec;
+    this.addChild(this.itemFennec);
 
     game.rootScene.addChild(this);
   },
@@ -589,6 +915,39 @@ var UI = enchant.Class.create(enchant.Group, {
   onenterframe: function(){
     this.playerHPBar.value = player.hp;
     this.score.text = player.score.toString();
+
+    if(!player.serval){
+      this.itemServal.opacity = ItemFalseOpacity;
+      this.itemServal.enabled = false;
+    } else {
+      this.itemServal.opacity = ItemTrueOpacity;
+      this.itemServal.enabled = true;
+    }
+
+    if(!player.caracal){
+      this.itemCaracal.opacity = ItemFalseOpacity;
+      this.itemCaracal.enabled = false;
+    } else {
+      this.itemCaracal.opacity = ItemTrueOpacity;
+      this.itemCaracal.enabled = true;
+    }
+
+    if(!player.racoon){
+      this.itemRacoon.opacity = ItemFalseOpacity;
+      this.itemRacoon.enabled = false;
+    } else {
+      this.itemRacoon.opacity = ItemTrueOpacity;
+      this.itemRacoon.enabled = true;
+    }
+
+    if(!player.fennec){
+      this.itemFennec.opacity = ItemFalseOpacity;
+      this.itemFennec.enabled = false;
+    } else {
+      this.itemFennec.opacity = ItemTrueOpacity;
+      this.itemFennec.enabled = true;
+    }
+
   }
 });
 
@@ -600,22 +959,38 @@ window.onload = function(){
   game.fps = GameFPS;
 
   game.preload(PlayerImageFilename);
-  game.preload(EnemyImageFilename);
-  game.preload(PlayerAttackImageFilename);
+
+  game.preload(ServalFilename);
+  game.preload(CaracalFilename);
+  game.preload(RacoonFilename);
+  game.preload(FennecFilename);
   game.preload(JaparimanImageFilename);
+
+  game.preload(CutinServalFilename);
+  game.preload(CutinCaracalFilename);
+  game.preload(CutinRacoonFilename);
+  game.preload(CutinFennecFilename);
+
   game.preload(UIPlayerHPBarImageFilename);
+
+  game.preload(PlayerAttackImageFilename);
   game.preload(BombFilename);
   game.preload(ItembarFilename);
+
+  game.preload(EnemyImageFilename);
 
   game.preload(PlayerAttackEffectFilename);
   game.preload(PlayerDamageEffectFilename);
   game.preload(EnemyRemoveEffectFilename);
   game.preload(ItemGetEffectFilename);
 
+
   game.onload = function(){
 
     //自機インスタンス
     player = new Player();
+
+    wave = new Wave(0);
 
     ui = new UI();
 
