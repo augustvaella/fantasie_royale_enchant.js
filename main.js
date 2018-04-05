@@ -8,7 +8,9 @@ var GameFieldRightX = 320;
 var GameFieldRightY = 550;
 var GameFPS = 30;
 var GameWave = 1;
-var GameMaxWave = 10;
+
+var WaveClearWait = 120;
+
 
 var UIPlayerHPBarX = 50;
 var UIPlayerHPBarY = 15;
@@ -48,6 +50,25 @@ var EnemyRemoveEffectFilename = "./effects/damage6.mp3";
 var EnemyHP = 1;
 var EnemyAttack = 1;
 var EnemyScore = 100;
+var EnemyBombWait = 10;
+var EnemyShokushuPosition = [
+  {
+    x: (GameFieldRightX - GameFieldX) / 4 - 32 / 2,
+    y: GameFieldY + 32 + 32
+  },
+  {
+    x: 3 * (GameFieldRightX - GameFieldX) / 4 - 32 / 2,
+    y: GameFieldY + 32 + 32
+  },
+  {
+    x: (GameFieldRightX - GameFieldX) / 8 - 32 / 2,
+    y: GameFieldY + 32
+  },
+  {
+    x: 7 * (GameFieldRightX - GameFieldX) / 8 - 32 / 2,
+    y: GameFieldY + 32
+  }
+];
 
 var JaparimanWidth = 32;
 var JaparimanHeight = 32;
@@ -128,6 +149,31 @@ var Cellien = {
   EnemyMoveInterval: 30
 };
 
+var BossGate = {
+  EnemyImageWidth: 96,
+  EnemyImageHeight: 96,
+  EnemyImageFilename: "./image/boss_gate.png",
+  EnemySpeed: 1,
+  EnemyHP: 10,
+  EnemyAttack: 1,
+  EnemyAttackInterval: 6,
+  EnemyScore: 100,
+  EnemyMoveInterval: 10000
+};
+
+var Shokushu = {
+  EnemyImageWidth: 32,
+  EnemyImageHeight: 64,
+  EnemyImageFilename: "./image/shokushu.png",
+  EnemySpeed: 20,
+  EnemyHP: 1,
+  EnemyAttack: 1,
+  EnemyAttackInterval: 3,
+  EnemyScore: 100,
+  EnemyMoveInterval: 30
+};
+
+
 
 var WaveObject = [];
 
@@ -147,34 +193,68 @@ WaveObject[0] = {
 
 WaveObject[1] = {
   Number: 1,
-  NumberEnemyMax: 30,
-  NumberEnemyWhereBossCome: 60,
+  NumberEnemyMax: 15,
+  NumberEnemyWhereBossCome: 5,
   IntervalWhenEventOccur: 30,
   IntervalEnemy: 60,
-  IntervalJapariman: 120,
-  IntervalServal: 120,
-  IntervalCaracal: 120,
-  IntervalRacoon: 120,
-  IntervalFennec: 120,
+  IntervalJapariman: 240,
+  IntervalServal: 360,
+  IntervalCaracal: 480,
+  IntervalRacoon: 600,
+  IntervalFennec: 720,
+
+  EventBoss: function(){
+    var bss = new EnemyBossGate(BossGate);
+
+    var shk1 = new EnemyShokushu(Shokushu);
+    shk1.x = EnemyShokushuPosition[0].x;
+    shk1.y = EnemyShokushuPosition[0].y;
+    var shk2 = new EnemyShokushu(Shokushu);
+    shk2.x = EnemyShokushuPosition[1].x;
+    shk2.y = EnemyShokushuPosition[1].y;
+  },
+
   EventMethod: function(){
+
     if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
           var enm = new Enemy(Cellien);
-
     }
-    if(this.numberJapariman < 1 && this.age % this.intervalJapariman == 0){
-        var jpr = new Japariman();
+  }
+};
+
+WaveObject[2] = {
+  Number: 2,
+  NumberEnemyMax: 15,
+  NumberEnemyWhereBossCome: 10,
+  IntervalWhenEventOccur: 30,
+  IntervalEnemy: 30,
+  IntervalJapariman: 240,
+  IntervalServal: 360,
+  IntervalCaracal: 480,
+  IntervalRacoon: 600,
+  IntervalFennec: 720,
+
+  EventBoss: function(){
+    var bss = new EnemyBossGate(BossGate);
+    var shk1 = new EnemyShokushu(Shokushu);
+    shk1.x = EnemyShokushuPosition[0].x;
+    shk1.y = EnemyShokushuPosition[0].y;
+    var shk2 = new EnemyShokushu(Shokushu);
+    shk2.x = EnemyShokushuPosition[1].x;
+    shk2.y = EnemyShokushuPosition[1].y;
+    var shk3 = new EnemyShokushu(Shokushu);
+    shk3.x = EnemyShokushuPosition[2].x;
+    shk3.y = EnemyShokushuPosition[2].y;
+    var shk4 = new EnemyShokushu(Shokushu);
+    shk4.x = EnemyShokushuPosition[3].x;
+    shk4.y = EnemyShokushuPosition[3].y;
+  },
+
+  EventMethod: function(){
+
+    if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
+          var enm = new Enemy(Cellien);
     }
-    if(this.numberServal < 1 && this.age % this.intervalServal == 0)
-        var jpr = new Serval();
-
-    if(this.numberCaracal < 1 && this.age % this.intervalCaracal == 0)
-        var jpr = new Caracal();
-
-    if(this.numberRacoon < 1 && this.age % this.intervalRacoon == 0)
-        var jpr = new Racoon();
-
-    if(this.numberFennec < 1 && this.age % this.intervalFennec == 0)
-        var jpr = new Fennec();
   }
 };
 
@@ -321,7 +401,7 @@ var CutinServal = enchant.Class.create(Cutin, {
       CutinServalFilename, wave.doServal);
 
     this.image.tl.moveTo(50, 245, 20, enchant.Easing.QUAD_EASEOUT)
-    .tween({Y:0, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .tween({y:150, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
     .then(function(){this.isStopImage = true;});
   }
 });
@@ -334,7 +414,7 @@ var CutinCaracal = enchant.Class.create(Cutin, {
       CutinCaracalFilename, wave.doCaracal);
 
     this.image.tl.moveTo(70, 188, 20, enchant.Easing.QUAD_EASEOUT)
-    .tween({Y:0, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .tween({y:150, scaleX: 2, scaleY: 2, opacity: 0, time: 50, easing: QUAD_EASEOUT})
     .then(function(){this.isStopImage = true;});
   }
 });
@@ -347,7 +427,7 @@ var CutinRacoon = enchant.Class.create(Cutin, {
       CutinRacoonFilename, wave.doRacoon);
 
     this.image.tl.moveTo(120, 315, 20, enchant.Easing.QUAD_EASEOUT)
-    .tween({Y:0, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    .tween({x:50, y:150, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
     .then(function(){this.isStopImage = true;});
   }
 });
@@ -359,8 +439,8 @@ var CutinFennec = enchant.Class.create(Cutin, {
     Cutin.call(this, CutinFennecX, CutinFennecY, CutinFennecWidth, CutinFennecHeight,
       CutinFennecFilename, wave.doFennec);
 
-    this.image.tl.moveTo(50, 265, 20, enchant.Easing.QUAD_EASEOUT)
-    .tween({Y:600, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
+    this.image.tl.moveTo(50, 365, 20, enchant.Easing.QUAD_EASEOUT)
+    .tween({y:200, scaleX: 3, scaleY: 3, opacity: 0, time: 50, easing: QUAD_EASEOUT})
     .then(function(){this.isStopImage = true;});
   }
 });
@@ -390,6 +470,41 @@ var WaveInformation = enchant.Class.create(enchant.Scene, {
 });
 
 
+var WaveClear = enchant.Class.create(enchant.Scene, {
+  initialize: function(num){
+    enchant.Scene.call(this);
+
+
+    this.number = num;
+    this.number++;
+
+    var txt;
+
+    if(this.number < WaveObject.length){
+      txt = "Clear!";
+    } else {
+      txt = "Congratulations!";
+    }
+
+    this.text = new enchant.ui.MutableText(
+      (GameScreenWidth - UIFontWidth * txt.length) / 2,
+      (GameScreenHeight - UIFontWidth) / 2,
+      UIFontWidth * txt.length
+    );
+    this.text.text = txt;
+    this.addChild(this.text);
+  },
+
+  ontouchstart: function(){
+    if(this.number < WaveObject.length){
+      game.popScene();
+      game.pushScene(new WaveInformation(this.number));
+      delete this;
+    }
+  }
+});
+
+
 
 var Wave = enchant.Class.create(enchant.Node, {
   initialize: function(obj){
@@ -401,6 +516,8 @@ var Wave = enchant.Class.create(enchant.Node, {
     this.numberEnemy = 0;
     this.intervalEnemy = obj["IntervalEnemy"];
     this.numberEnemyWhereBossCome = obj["NumberEnemyWhereBossCome"];
+    this.isBossHaveCome = false;
+    this.isBossDestroyed = false;
     this.intervalWhenEventOccur = obj["IntervalWhenEventOccur"];
 
     this.numberJapariman = 0;
@@ -426,26 +543,67 @@ var Wave = enchant.Class.create(enchant.Node, {
     this.isEnemyAnihilated = false;
     this.isEnemyStop = false;
 
+    this.isReadyToGoNextWave = false;
+
     this.wait = 0;
 
+    this.enabled = true;
+
     this.eventMethod = obj["EventMethod"];
+    this.eventBoss = obj["EventBoss"];
 
     game.rootScene.addChild(this);
   },
   onenterframe: function(){
+    if(!this.enabled) return;
+
     if(this.wait > 0) return --this.wait;
+
+    if(this.isReadyToGoNextWave){
+      this.enabled = false;
+      game.pushScene(new WaveClear(wave.number));
+      this.end();
+    }
+
+    if(this.isBossDestroyed){
+      this.isReadyToGoNextWave = true;
+      this.isEnemyAnihilated = true;
+      this.wait = WaveClearWait;
+    }
+
+    if(this.numberEnemyWhereBossCome < 0 && this.isBossHaveCome == false){
+      this.eventBoss();
+      this.isBossHaveCome = true;
+    }
+
+    if(this.numberJapariman < 1 && this.age % this.intervalJapariman == 0){
+        var jpr = new Japariman();
+    }
+    if(this.numberServal < 1 && this.age % this.intervalServal == 0)
+        var jpr = new Serval();
+
+    if(this.numberCaracal < 1 && this.age % this.intervalCaracal == 0)
+        var jpr = new Caracal();
+
+    if(this.numberRacoon < 1 && this.age % this.intervalRacoon == 0)
+        var jpr = new Racoon();
+
+    if(this.numberFennec < 1 && this.age % this.intervalFennec == 0)
+        var jpr = new Fennec();
+
 
     if(this.age % this.intervalWhenEventOccur == 0){
       this.eventMethod();
     }
   },
   end: function(){
+    this.finalize();
     game.rootScene.removeChild(this);
     delete this;
   },
-  eventMethod: function(){
+  eventMethod: function(){},
 
-  },
+  eventBoss: function(){},
 
   doServal: function(){
     player.serval = false;
@@ -547,25 +705,18 @@ var Player = enchant.Class.create(enchant.Sprite,{
 
     this.enabled = true;
 
-    this.isToMove = false;
-    this.moveToX = 0;
-    this.moveToY = 0;
     this.speed = PlayerSpeed;
     game.rootScene.addChild(this);
   },
 
   onenterframe: function(){
-    if(this.isToMove){
-      this.move();
-      this.isToMove = false;
-    }
     this.attackDelay++;
   },
 
-  move: function(){
+  move: function(x, y){
     if(this.enabled){
-      var dx = this.moveToX - (this.width / 2);
-      var dy = this.moveToY - (this.height / 2);
+      var dx = x - (this.width / 2);
+      var dy = y - (this.height / 2);
       var frm = distance(dx, dy, this.x, this.y) / this.speed;
       this.tl.clear();
       this.tl.moveTo(dx, dy, frm, enchant.Easing.LINEAR);
@@ -761,7 +912,9 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
     this.enabled = true;
 
     game.rootScene.insertBefore(this, player);
+
     wave.numberEnemy++;
+    wave.numberEnemyWhereBossCome--;
   },
 
   onenterframe: function(){
@@ -769,14 +922,17 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
 
     if(this.isToRemoved){
       this.remove();
-      this.isToRemoved = false;
     }
 
     if(wave.isEnemyAnihilated){
-      this.remove();
+      this.isToRemoved = true;
     }
 
-    this.move();
+    if(this.isToRemoved) return;
+
+    if(this.age % this.moveInterval == 0) {
+      this.move();
+    }
 
     if(this.intersect(player)){
       this.ontouchplayer();
@@ -786,13 +942,20 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
   },
 
   ontouchplayer: function(){
+    this.attackByEnemy();
+    this.attackByPlayer();
+  },
+
+  attackByEnemy: function(){
     if(this.age % this.attackInterval == 0) {
       player.damageHP(this.attack);
 
       var snd = player.damageEffect.clone();
       snd.play();
     }
+  },
 
+  attackByPlayer: function(){
     if(player.attackDelay >= player.attackInterval){
       this.damageHP(player.attack);
       player.attackDelay = 0;
@@ -804,9 +967,14 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
       var y = (this.y + player.y) / 2;
       var crs = new PlayerAttackImage(x, y);
     }
+
   },
 
   remove: function(){
+    this.removeImmediately();
+  },
+
+  removeImmediately: function(){
     this.finalize();
     player.gainScore(this.score);
 
@@ -819,8 +987,6 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
   },
 
   move: function(){
-    if(this.age % this.moveInterval != 0) return;
-
     this.tl.clear();
     this.tl.moveTo(player.x, player.y,
       distance(this.x, this.y, player.x, player.y) / this.speed,
@@ -839,6 +1005,86 @@ var Enemy = enchant.Class.create(enchant.Sprite, {
 
   finalize: function(){
 
+  }
+});
+
+
+
+var EnemyShokushu = enchant.Class.create(Enemy, {
+  initialize: function(obj){
+    Enemy.call(this, obj);
+
+  },
+
+  ontouchplayer: function(){
+    this.attackByEnemy();
+  },
+
+  move: function(){
+    if(Math.random() < 0.5) return;
+
+    this.originX = this.x;
+    this.originY = this.y;
+
+    this.tl.moveTo(player.x, player.y, this.speed, enchant.Easing.QUAD_EASEOUT)
+    .moveTo(this.originX, this.originY, this.speed, enchant.Easing.LINEAR);
+  },
+
+  answerPosition: function(){
+    return {x: 0, y: 0};
+  }
+});
+
+
+
+var EnemyBossGate = enchant.Class.create(Enemy, {
+  initialize: function(obj){
+    Enemy.call(this, obj);
+
+    this.waitRemoving = 60;
+  },
+
+  move: function(){},
+
+  ontouchplayer: function(){
+    this.attackByPlayer();
+  },
+
+  remove: function(){
+    wave.isBossDestroyed = true;
+
+    if(this.waitRemoving > 0){
+      this.doRemoving();
+      this.waitRemoving--;
+    } else {
+      this.removeImmediately();
+    }
+
+  },
+
+  doRemoving: function(){
+    if(this.age % EnemyBombWait == 0){
+      var x = this.x + Math.random() * this.width;
+      var y = this.y + Math.random() * this.height;
+      var bmb = new Bomb(x, y);
+    }
+  },
+
+  answerPosition: function(){
+    return {
+      x: (GameFieldRightX - GameFieldX - this.width) / 2,
+      y: GameFieldY
+    };
+  },
+
+  damageHP: function(val){
+    this.hp -= val;
+    if(this.hp <= 0) {
+      this.isToRemoved = true;
+    }
+  },
+
+  finalize: function(){
   }
 });
 
@@ -978,6 +1224,8 @@ window.onload = function(){
   game.preload(ItembarFilename);
 
   game.preload(EnemyImageFilename);
+  game.preload("./image/boss_gate.png");
+  game.preload("./image/shokushu.png");
 
   game.preload(PlayerAttackEffectFilename);
   game.preload(PlayerDamageEffectFilename);
@@ -996,10 +1244,8 @@ window.onload = function(){
 
 
     function beginPlayerMove(ev){
-      if(ev.y > 0 && ev.y < GameScreenHeight - ItembarHeight){
-        player.isToMove = true;
-        player.moveToX = ev.x;
-        player.moveToY = ev.y;
+      if(isInGameField(ev.x, ev.y)){
+        player.move(ev.x, ev.y);
       }
     }
 
