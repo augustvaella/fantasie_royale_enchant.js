@@ -23,33 +23,54 @@ var UITextHPWidth = 50;
 var UIFontWidth = 16;
 var UIScoreKeta = 9;
 
+var MapFilename = "./image/map.png";
+var MapDataSavanna = [
+  [ 6,  6,  6,  6, 11,  0,  9,  6,  6,  6],
+  [ 6,  6,  6, 11,  0,  0,  0,  9, 10, 10],
+  [ 6,  6, 11,  0,  0,  0,  0,  0,  0,  0],
+  [ 6, 11,  0,  0,  0,  0,  0,  0,  0,  0],
+  [11,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+  [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+  [ 0,  1,  2,  3,  0,  0,  0,  0,  0,  1],
+  [ 1,  6,  6,  6,  3,  0,  0,  0,  1,  6],
+  [ 6,  6,  6,  6,  6,  3,  0,  0,  5,  6],
+  [ 6,  6,  6,  6,  6,  7,  0,  0,  5,  6],
+  [ 6,  6,  6,  6,  6,  7,  0,  0,  9,  6],
+  [ 6,  6,  6,  6,  6,  7,  0,  0,  0,  9],
+  [ 6,  6,  6,  6,  6, 11,  0,  0,  0,  0],
+  [ 6,  6,  6,  6, 11,  0,  0,  0,  0,  0],
+  [10, 10, 10, 11,  0,  0,  0,  0,  1,  2],
+  [ 0,  0,  0,  0,  0,  0,  0,  1,  6,  6],
+  [ 0,  0,  0,  0,  0,  0,  1,  6,  6,  6],
+  [ 0,  0,  0,  0,  0,  1,  6,  6,  6,  6],
+  [ 0,  0,  0,  0,  0,  5,  6,  6,  6,  6]
+];
+var MapWidth = 32;
+
 var PlayerImageWidth = 32;
 var PlayerImageHeight = 40;
 var PlayerImageFilename = "./image/player.png";
+var PlayerHP = 50;
 var PlayerSpeed = 10;
 var PlayerEnabled = true;
 var PlayerAttack = 1;
+var PlayerAttackBuffed = 2;
+var PlayerAttackBufWait = GameFPS * 5;
 var PlayerAttackInterval = GameFPS / 2;
+var PlayerAttackIntervalBuffed = GameFPS / 4;
+var PlayerAttackIntervalBufWait = GameFPS * 5;
+var PlayerInvincibleWait = GameFPS * 5;
+
 var PlayerAttackImageFilename = "./image/attack.png";
 var PlayerAttackImageWidth = 32;
 var PlayerAttackImageHeight = 32;
 var PlayerAttackImageFrame = [0, 0, 0, 1, 1, 1, 2, 2, 2, null];
 var PlayerAttackEffectFilename = "./effects/cutting_wind1.mp3";
-var PlayerHP = 50;
 var PlayerDamageEffectFilename = "./effects/damage1.mp3";
 
-var EnemyImageWidth = 32;
-var EnemyImageHeight = 32;
+
 var EnemyImageFilename = "./image/enemy.png";
-var EnemySpeed = 5;
-var EnemyMax = 30; //the max number of the enemies
-var EnemyInterval = GameFPS;
-var EnemyMoveInterval = GameFPS;
-var EnemyAttackInterval = 6;
 var EnemyRemoveEffectFilename = "./effects/damage6.mp3";
-var EnemyHP = 1;
-var EnemyAttack = 1;
-var EnemyScore = 100;
 var EnemyBombWait = 10;
 var EnemyShokushuPosition = [
   {
@@ -67,13 +88,21 @@ var EnemyShokushuPosition = [
   {
     x: 7 * (GameFieldRightX - GameFieldX) / 8 - 32 / 2,
     y: GameFieldY + 32
+  },
+  {
+    x: (GameFieldRightX - GameFieldX) / 4 - 32 / 2,
+    y: GameFieldRightY - 96
+  },
+  {
+    x: 3 * (GameFieldRightX - GameFieldX) / 4 - 32 / 2,
+    y: GameFieldRightY - 96
   }
 ];
 
 var JaparimanWidth = 32;
 var JaparimanHeight = 32;
 var JaparimanImageFilename = "./image/japariman.png";
-var JaparimanRecoverHP = 15;
+var JaparimanRecoverHP = 20;
 var JaparimanInterval = GameFPS * 10;
 var JaparimanMoveDX = 5;
 var JaparimanMoveDY = 5;
@@ -138,40 +167,54 @@ var BombEffectFilename =  EnemyRemoveEffectFilename;
 var BombFrame = [0, 0, 1, 1, 2, 2, null];
 
 var Cellien = {
-  EnemyImageWidth: 32,
-  EnemyImageHeight: 32,
-  EnemyImageFilename: "./image/enemy.png",
-  EnemySpeed: 5,
-  EnemyHP: 1,
-  EnemyAttack: 1,
-  EnemyAttackInterval: 6,
-  EnemyScore: 100,
-  EnemyMoveInterval: 30
+  ImageWidth: 32,
+  ImageHeight: 32,
+  ImageFilename: "./image/enemy.png",
+  Speed: 5,
+  HP: 1,
+  Attack: 1,
+  AttackInterval: 30,
+  Score: 100,
+  MoveInterval: 15
+};
+
+var RedCellien = {
+  ImageWidth: 96,
+  ImageHeight: 96,
+  ImageFilename: "./image/red_cellien.png",
+  Speed: 2,
+  HP: 3,
+  Attack: 1,
+  AttackInterval: 30,
+  Score: 500,
+  MoveInterval: 30
 };
 
 var BossGate = {
-  EnemyImageWidth: 96,
-  EnemyImageHeight: 96,
-  EnemyImageFilename: "./image/boss_gate.png",
-  EnemySpeed: 1,
-  EnemyHP: 10,
-  EnemyAttack: 1,
-  EnemyAttackInterval: 6,
-  EnemyScore: 100,
-  EnemyMoveInterval: 10000
+  ImageWidth: 96,
+  ImageHeight: 96,
+  ImageFilename: "./image/boss_gate.png",
+  Speed: 1,
+  HP: 30,
+  Attack: 1,
+  AttackInterval: 6,
+  Score: 10000,
+  MoveInterval: 10000
 };
 
 var Shokushu = {
-  EnemyImageWidth: 32,
-  EnemyImageHeight: 64,
-  EnemyImageFilename: "./image/shokushu.png",
-  EnemySpeed: 20,
-  EnemyHP: 1,
-  EnemyAttack: 1,
-  EnemyAttackInterval: 3,
-  EnemyScore: 100,
-  EnemyMoveInterval: 30
+  ImageWidth: 32,
+  ImageHeight: 64,
+  ImageFilename: "./image/shokushu.png",
+  Speed: 20,
+  HP: 1,
+  Attack: 1,
+  AttackInterval: 30,
+  Score: 100,
+  MoveInterval: 30
 };
+
+var ShokushuReverseFilename = "./image/shokushu_reverse.png";
 
 
 
@@ -242,6 +285,40 @@ WaveObject[2] = {
     var shk2 = new EnemyShokushu(Shokushu);
     shk2.x = EnemyShokushuPosition[1].x;
     shk2.y = EnemyShokushuPosition[1].y;
+  },
+
+  EventMethod: function(){
+
+    if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
+          var enm = new Enemy(Cellien);
+    }
+
+    if(this.age % (this.intervalEnemy * 6) == 0 && this.numberEnemy < this.numberEnemyMax){
+          var enm = new Enemy(RedCellien);
+    }
+  }
+};
+
+WaveObject[3] = {
+  Number: 3,
+  NumberEnemyMax: 15,
+  NumberEnemyWhereBossCome: 10,
+  IntervalWhenEventOccur: 30,
+  IntervalEnemy: 30,
+  IntervalJapariman: 240,
+  IntervalServal: 360,
+  IntervalCaracal: 480,
+  IntervalRacoon: 600,
+  IntervalFennec: 720,
+
+  EventBoss: function(){
+    var bss = new EnemyBossGate(BossGate);
+    var shk1 = new EnemyShokushu(Shokushu);
+    shk1.x = EnemyShokushuPosition[0].x;
+    shk1.y = EnemyShokushuPosition[0].y;
+    var shk2 = new EnemyShokushu(Shokushu);
+    shk2.x = EnemyShokushuPosition[1].x;
+    shk2.y = EnemyShokushuPosition[1].y;
     var shk3 = new EnemyShokushu(Shokushu);
     shk3.x = EnemyShokushuPosition[2].x;
     shk3.y = EnemyShokushuPosition[2].y;
@@ -251,12 +328,17 @@ WaveObject[2] = {
   },
 
   EventMethod: function(){
-
-    if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax){
+    if(this.age % this.intervalEnemy == 0 && this.numberEnemy < this.numberEnemyMax - 1){
           var enm = new Enemy(Cellien);
+          var enm2 = new Enemy(Cellien);
+    }
+
+    if(this.age % (this.intervalEnemy * 6) == 0 && this.numberEnemy < this.numberEnemyMax){
+          var enm = new Enemy(RedCellien);
     }
   }
 };
+
 
 
 //二点間の距離
@@ -308,6 +390,8 @@ function answerPositionScreenAround(wid, hei){
 
 var ui;
 
+var map;
+
 //自機設定
 var player;
 
@@ -318,6 +402,23 @@ var numberJapariman = 0;
 var wave;
 
 var game;
+
+
+//リロードボタン
+
+var ReloadButton = enchant.Class.create(enchant.ui.Button, {
+  initialize: function(){
+    enchant.ui.Button.call(this, "もう一度", "blue", 64, 120);
+    this.x = (GameScreenWidth - 64) / 2;
+    this.y = 3 * (GameScreenHeight - 120) / 4;
+  },
+
+  ontouchstart: function(){
+    console.log("aaa");
+    game.popScene();
+    game.onload();
+  }
+});
 
 
 //ゲームオーバーシーン
@@ -332,7 +433,10 @@ var GameoverScene = enchant.Class.create(enchant.Scene,{
     this.gameoverLabel.text = "Game Over";
     this.addChild(this.gameoverLabel);
 
+    //this.reloadButton = new ReloadButton();
+    //this.addChild(this.reloadButton);
   },
+
   onenter: function(){
     game.stop();
   }
@@ -518,7 +622,10 @@ var Wave = enchant.Class.create(enchant.Node, {
     this.numberEnemyWhereBossCome = obj["NumberEnemyWhereBossCome"];
     this.isBossHaveCome = false;
     this.isBossDestroyed = false;
+
     this.intervalWhenEventOccur = obj["IntervalWhenEventOccur"];
+
+    this.isRacoon = false;
 
     this.numberJapariman = 0;
     this.numberJaparimanMax = 1;
@@ -607,25 +714,30 @@ var Wave = enchant.Class.create(enchant.Node, {
 
   doServal: function(){
     player.serval = false;
-
+    player.attackIntervalBufWait = PlayerAttackIntervalBufWait;
   },
 
   doCaracal: function(){
     player.caracal = false;
+    player.attackBufWait = PlayerAttackBufWait;
   },
 
   doRacoon: function(){
     player.racoon = false;
+    player.invincibleWait = PlayerInvincibleWait;
   },
 
   doFennec: function(){
     player.fennec = false;
+    player.recoverHP(PlayerHP);
   },
 
   finalize: function(){
 
   }
 });
+
+
 
 //爆発クラス
 //アニメーションフレームが配列であり、その配列で null があると
@@ -693,6 +805,10 @@ var Player = enchant.Class.create(enchant.Sprite,{
     this.attackDelay = 0;
     this.attackInterval = PlayerAttackInterval;
     this.attackEffect = game.assets[PlayerAttackEffectFilename];
+    this.attackBufWait = 0;
+    this.attackIntervalBufWait = 0;
+
+    this.invincibleWait = 0;
 
     this.damageEffect = game.assets[PlayerDamageEffectFilename];
 
@@ -710,6 +826,24 @@ var Player = enchant.Class.create(enchant.Sprite,{
   },
 
   onenterframe: function(){
+    if(player.attackIntervalBufWait > 0){
+      player.attackInterval = PlayerAttackIntervalBuffed;
+      player.attackIntervalBufWait--;
+    } else {
+      player.attackInterval = PlayerAttackInterval;
+    }
+
+    if(player.attackBufWait > 0){
+      player.attack = PlayerAttackBuffed;
+      player.attackBufWait--;
+    } else {
+      player.attack = PlayerAttack;
+    }
+
+    if(this.invincibleWait > 0){
+      this.invincibleWait--;
+    }
+
     this.attackDelay++;
   },
 
@@ -729,6 +863,7 @@ var Player = enchant.Class.create(enchant.Sprite,{
   },
 
   damageHP: function(val){
+    if(this.invincibleWait > 0) return;
     this.hp -= val;
     if(this.hp < 0) this.finalize();
   },
@@ -887,29 +1022,32 @@ var Fennec = enchant.Class.create(Item, {
 
 var Enemy = enchant.Class.create(enchant.Sprite, {
   initialize: function(obj){
-    enchant.Sprite.call(this, obj["EnemyImageWidth"], obj["EnemyImageHeight"]);
-    this.image = game.assets[obj["EnemyImageFilename"]];
+    enchant.Sprite.call(this, obj["ImageWidth"], obj["ImageHeight"]);
+    this.image = game.assets[obj["ImageFilename"]];
     this.frame = 0;
     var pos = this.answerPosition();
     this.x = pos.x;
     this.y = pos.y;
-    this.speed = obj["EnemySpeed"];
+    this.speed = obj["Speed"];
 
-    this.hp = obj["EnemyHP"];
-    this.attack = obj["EnemyAttack"];
+    this.hp = obj["HP"];
+    this.attack = obj["Attack"];
     this.attackDelay = 0;
-    this.attackInterval = obj["EnemyAttackInterval"];
+    this.attackInterval = obj["AttackInterval"];
 
-    this.score = obj["EnemyScore"];
+    this.score = obj["Score"];
 
     this.isToMove = false;
     this.moveToX = 0;
     this.moveToY = 0;
-    this.moveInterval = obj["EnemyMoveInterval"];
+    this.moveInterval = obj["MoveInterval"];
 
     this.isToRemoved = false;
 
     this.enabled = true;
+
+    this.opacity = 0;
+    this.tl.tween({opacity: 1, time:10, easing: LINEAR});
 
     game.rootScene.insertBefore(this, player);
 
@@ -1219,13 +1357,17 @@ window.onload = function(){
 
   game.preload(UIPlayerHPBarImageFilename);
 
+  game.preload(MapFilename);
+
   game.preload(PlayerAttackImageFilename);
   game.preload(BombFilename);
   game.preload(ItembarFilename);
 
   game.preload(EnemyImageFilename);
-  game.preload("./image/boss_gate.png");
-  game.preload("./image/shokushu.png");
+  game.preload(BossGate.ImageFilename);
+  game.preload(Shokushu.ImageFilename);
+  game.preload(ShokushuReverseFilename);
+  game.preload(RedCellien.ImageFilename);
 
   game.preload(PlayerAttackEffectFilename);
   game.preload(PlayerDamageEffectFilename);
@@ -1241,6 +1383,11 @@ window.onload = function(){
     wave = new Wave(0);
 
     ui = new UI();
+
+    map = new enchant.Map(MapWidth, MapWidth);
+    map.image = game.assets[MapFilename];
+    map.loadData(MapDataSavanna);
+    game.rootScene.insertBefore(map, player);
 
 
     function beginPlayerMove(ev){
