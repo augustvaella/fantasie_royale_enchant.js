@@ -62,8 +62,8 @@ var PlayerAttackIntervalBufWait = GameFPS * 5;
 var PlayerInvincibleWait = GameFPS * 5;
 
 var PlayerAttackImageFilename = "./image/attack.png";
-var PlayerAttackImageWidth = 32;
-var PlayerAttackImageHeight = 32;
+var PlayerAttackImageWidth = 64 ;
+var PlayerAttackImageHeight = 64;
 var PlayerAttackImageFrame = [0, 0, 0, 1, 1, 1, 2, 2, 2, null];
 var PlayerAttackEffectFilename = "./effects/cutting_wind1.mp3";
 var PlayerDamageEffectFilename = "./effects/damage1.mp3";
@@ -161,8 +161,8 @@ var ItemFalseOpacity = 0.2;
 var ItemTrueOpacity = 1.0;
 
 var BombFilename = "./image/bomb.png";
-var BombWidth = 48;
-var BombHeight = 48;
+var BombWidth = 96;
+var BombHeight = 96;
 var BombEffectFilename =  EnemyRemoveEffectFilename;
 var BombFrame = [0, 0, 1, 1, 2, 2, null];
 
